@@ -84,33 +84,44 @@ namespace TodoApi.Controllers
             return NoContent();
         }
 
-
         // POST: api/TodoItems
         [HttpPost]
         [RequestSizeLimit(10000)]
-        public async Task<ActionResult<TodoItem>> PostTodoItem([FromForm]  TodoItem todoItem, IFormFile uploadedFile)
+        
+       
+
+            public async Task<ActionResult<TodoItem>> PostTodoItem([FromForm] TodoItem todoItem, List<IFormFile> uploadedFile)
         {
+            
             if (uploadedFile != null)
             {
-                // путь к папке Files
-                string path = "Files/" + uploadedFile.FileName;
-                // сохраняем файл в папку Files в каталоге
-                using (var fileStream = new FileStream(path, FileMode.Create))
+                foreach (var item in uploadedFile)
                 {
-                    await uploadedFile.CopyToAsync(fileStream);
-                }
-                FileModel file = new FileModel { Name = uploadedFile.FileName, Path = path };
+                    string path = "Files/" + item.FileName;
+                    // сохраняем файл в папку Files в каталоге
+                    using (var fileStream = new FileStream(path, FileMode.Create))
+                    {
+                        await item.CopyToAsync(fileStream);
+                    }
+                    FileModel file = new FileModel { Name = item.FileName, Path = path };
 
-                _context.Files.Add(file);
-            }
+                    todoItem.FileModels.Add(file);
+                }
+                foreach (var item in todoItem.FileModels)
+                {
+                    // путь к папке Files
+               
+
             _context.TodoItems.Add(todoItem);
+                }
+                
+
+            }
 
             await _context.SaveChangesAsync();
 
             return CreatedAtAction(nameof(GetTodoItem), new { id = todoItem.Id }, todoItem);
         }
-
-
 
         // DELETE: api/TodoItems/5
         [HttpDelete("{id}")]
@@ -136,7 +147,5 @@ namespace TodoApi.Controllers
         {
             return (_context.TodoItems?.Any(e => e.Id == id)).GetValueOrDefault();
         }
-
-        
     }
 }
